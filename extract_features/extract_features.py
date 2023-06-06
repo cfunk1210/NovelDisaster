@@ -22,13 +22,13 @@ log = logging.getLogger("rich")
 
 
 # Model to extract out the files
-timm_model_name = 'resnet34'
+timm_model_name = 'convnext_xlarge_in22k'
 
 # Coco file you want to extract feature out of
 input_coco_filename = './xview2.coco.json'
 
 # Coco file you want the features to be saved into (will retain other images)
-output_coco_filename = f'./xview2_{timm_model_name}.coco.zip'
+output_coco_filename = f'/mnt/3bcbbdb5-8833-4d40-a51a-7fca7f39ec24/data2/xview2/xview2_{timm_model_name}.coco.json'
 
 device = 'cuda'
 
@@ -49,22 +49,26 @@ if timm_model_name not in avail_pretrained_models:
     raise Exception("Fix Network Name")
 
 # Will download pretrained network if not already downloaded
-model = timm.create_model(timm_model_name, pretrained=True)
-model.to(device)
-model_info = timm.data.resolve_data_config(args={},model=model)
+feature_model = timm.create_model(timm_model_name, pretrained=True, num_classes=0)
+feature_model.to(device)
+logit_model = timm.create_model(timm_model_name, pretrained=True)
+logit_model.to(device)
 
-model.eval()
+
+model_info = timm.data.resolve_data_config(args={},model=feature_model)
+
+feature_model.eval()
+logit_model.eval()
 
 def predict_feature(chip=None):
-    with autocast():
-        x = model(chip)
-    return x
+    return dict({'logits':logit_model(chip), 'features':feature_model(chip)})
+  
 
 
 
 # %% 
 def prepare_image(x):
-    x = torch.asarray(img).to(device).half()
+    x = torch.asarray(img).to(device)
     x = x.transpose(0,2)
     x = x / 255.0
     x[0] = x[0] - model_info['mean'][0] / model_info['std'][0]
@@ -96,7 +100,8 @@ with Progress(
             x = prepare_image(img)
             
             feats = predict_feature(x)
-            ann[timm_model_name] = feats.tolist()
+            ann['features'] = feats['features'].tolist()
+            ann['logits'] = feats['logits'].tolist()
             # plt.imshow(img)
 
             progress.update(task2, advance=1, refresh=True)
