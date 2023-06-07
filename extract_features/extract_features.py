@@ -58,10 +58,11 @@ feature_model.to(device)
 model_info = timm.data.resolve_data_config(args={},model=feature_model)
 
 feature_model.eval()
-logit_model.eval()
+# logit_model.eval()
 
 def predict_feature(chip=None):
-    return dict({'logits':logit_model(chip), 'features':feature_model(chip)})
+    # return dict({'logits':logit_model(chip), 'features':feature_model(chip)})
+    return dict({'features':feature_model(chip)})
   
 # x = torch.rand((1,3,model_info['input_size'][1], model_info['input_size'][2])).to(device)
 # y = feature_model(x)
