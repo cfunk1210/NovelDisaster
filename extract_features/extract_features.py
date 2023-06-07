@@ -22,7 +22,7 @@ log = logging.getLogger("rich")
 
 
 # Model to extract out the files
-timm_model_name = 'convnext_xlarge_in22k'
+timm_model_name = 'convnext_xlarge_in22ft1k'
 
 # Coco file you want to extract feature out of
 input_coco_filename = './xview2.coco.json'
@@ -51,8 +51,8 @@ if timm_model_name not in avail_pretrained_models:
 # Will download pretrained network if not already downloaded
 feature_model = timm.create_model(timm_model_name, pretrained=True, num_classes=0)
 feature_model.to(device)
-logit_model = timm.create_model(timm_model_name, pretrained=True)
-logit_model.to(device)
+# logit_model = timm.create_model(timm_model_name, pretrained=True)
+# logit_model.to(device)
 
 
 model_info = timm.data.resolve_data_config(args={},model=feature_model)
@@ -63,8 +63,12 @@ logit_model.eval()
 def predict_feature(chip=None):
     return dict({'logits':logit_model(chip), 'features':feature_model(chip)})
   
-
-
+# x = torch.rand((1,3,model_info['input_size'][1], model_info['input_size'][2])).to(device)
+# y = feature_model(x)
+# feature_array = np.zeros((coco.n_annots,y.shape[1]))
+# y = logit_model(x)
+# logit_array = np.zeros((coco.n_annots,y.shape[1]))
+# del y
 
 # %% 
 def prepare_image(x):
@@ -87,6 +91,7 @@ with Progress(
 ) as progress:
     task1 = progress.add_task("[red] Images...", total=coco.n_images)
     task2 = progress.add_task("[blue] Annots...", total=coco.n_annots)
+    id = 0
     for gid in coco.images():
         coco_img = coco.coco_image(gid)
         annots = coco_img.annots()
@@ -101,7 +106,7 @@ with Progress(
             
             feats = predict_feature(x)
             ann['features'] = feats['features'].tolist()
-            ann['logits'] = feats['logits'].tolist()
+            # ann['logits'] = feats['logits'].tolist()
             # plt.imshow(img)
 
             progress.update(task2, advance=1, refresh=True)
